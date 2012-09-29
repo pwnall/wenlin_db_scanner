@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+# Requires Ruby 1.9, tested on MRI 1.9.3.
+
+require 'wenlin_db_scanner'
+
+unless ARGV.length == 1
+  puts "Usage: #{$0} path-to-db-file"
+end
+
+db = WenlinDbScanner::Db.new ARGV[0]
+db.records.each do |record|
+  puts "---------- record tag: #{record.tag} = 0b#{'%b' % record.tag}"
+
+  if record.binary?
+    puts "---------- binary record, size: #{record.size}"
+    next
+  end
+
+  puts record.text
+  puts "---------- record end"
+end
+

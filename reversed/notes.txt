@@ -1,0 +1,235 @@
+--- each file
+2 bytes header length
+2 bytes version (1)
+n bytes header
+array of records
+
+--- each record
+2 bytes record size
+	- if negative, record is empty space
+n bytes record
+
+--- each n-byte record
+1 byte flag
+	- bit 1: set for alternate "encryption" offsets, used to protect CDL
+	- bit 2: set for text data, clear for binary data
+L=N-1 bytes of real data
+	- the pseudocode below covers the algoritm used to decode a record
+
+_DBRecordReadIntoTextBuf(buffer, fp, offset)
+	recordLength = fread(internal buffer, 1, 2, fp) interpreted as MSB
+	recordTag = fgetc(fp)
+	recordLength -= 1
+	if (recordTag >> 1) & 1 is not 0
+		return _DecompressDbRec(buffer, fp, recordLength, recordTag)
+	while recordLength > 0
+		rawRecordByte = fgetc(fp)
+		if rawRecordByte is -1
+			return failure
+		stat = _TBPutC(buffer, rawRecordByte)
+		if stat is not 0
+			return stat
+		recordLength -= 1
+
+_DecompressDbRec(buffer, fp, recordLength, recordTag)
+	- pDcStruct is a stack-allocated DecompressStruct
+	- decompressedChar is a local holding up to 5 bytes (a UTF8 char)
+	memset(pDcStruct, 0, sizeof(pDcStruct));
+	pDcStruct->fp = fp
+	pDcStruct->totalBits = pDcStruct->totalBits2 = recordLength * 8
+	pDcStruct->funnyMaskPtr = _FunnyMask(recordLength, recordTagCopy)
+		- returns pointer into funnyMask array
+		- if is v1
+			- return versionOneFunnyMasks + 8 * (recordLength & 7) bytes
+		- if archiveDifferent is set
+			- return versionTwoFunnyMasks + 8 * ((recordLength + (recordTag & 1)) & 7) bytes
+		- else
+			- versionTwoFunnyMasks + 8 * (recordLength & 7) bytes
+	pDcStruct->cryptOffset = _CrypOfs(recordLength, recordTagCopy)
+		- returns number between 0..63, probably offset into crypmask
+		- normally returns recordLength & 63
+		- if archiveDifferent is set and it's not v1
+			- instead return (recordLength + ((recordTag & 1) * 8)) & 63
+	pDcStruct->cryptMask = _CrypMask(cryptOffset)
+		- if v1, versionOneCrypMask; else versionTwoCrypMask
+	if recordLength <= 8 or v1
+		- pDcStruct->lineOffset = 9  // otherwise, it's initialized at 0
+
+	loop
+		decompressedByte = _DecompressByte(pDcStruct)
+		if decompressedByte < 0
+			if decompressedByte is 0xFFFF
+				return 0  // great success?
+		if ((decompressedByte >> 7) & 1) == 1  // original code more complicated
+			decompressedChar[0] = decompressedByte
+			mbCharLen = _MBCLenFromFirstByte(decompressedByte)
+			charOffset = 1  // the byte offset in decompressedChar
+			while charOffset < mbCharLen
+				decompressedByte = _DecompressSixBits(pDcStruct)
+				if decompressedByte <= 0
+					return failure code 0xFFFFDFFF
+				decompressedChar[charOffset] = decompressedByte
+			decompressedChar[mbCharLen] = 0
+			unicodeChar = _ZiNumberLen(decompressedChar, ziBuffer)
+			if unicodeChar is 0xFFFE or *ziBuffer is not mbCharLen
+				return failure code 0xFFFFDFFF
+			charOffset = 0
+			while charOffset < mbCharLen
+				stat = _TBPutC(buffer, decompressedChar[charOffset])
+				if stat is not 0
+					return stat  // out of memory?
+				charOffset += 1
+		else
+			easyStat = _TBPutC(buffer, decompressedByte)
+			if easyStat is not 0
+				return easyStat
+
+DecompressStruct, size 40 bytes -- 0x28
+	fp - [0x00] - file pointer
+	bitsRead - [0x04] - counts number of bits read, starts at 0
+	totalBits2 - [0x08] - record length in bits (unused)
+	totalBits - [0x0C] - record length in bits
+	currentLine - [0x10] - 9-character buffer of chars; populated from file, after matrix multiplication
+	lineOffset - [0x19] - 1-byte count, increasing from 0 to 9, pointing into currentLine
+	currentChar - [0x1A] - one character that was "decrypted", before bit permutation; populated from currentLine, after xor-decryption
+	funnyMaskPtr - [0x1C] - result of _FunnyMask call, points into funnyMask
+	cryptOffset - [0x20] - 1-byte count, starts at cryptOffset (0…63), decreasing
+	cryptMask - [0x24] - points to a *CrypMask
+
+_DecompressByte(pDcStruct)
+	- appears to do some huffman decoding
+	node = 0xFE
+	loop
+		if (pStruct->bitsRead & 7) == 0
+			bit = _GetBitX(pStruct)
+		else
+			bit = (pStruct->currentChar + pStruct->funnyMaskPtr[pStruct->bitsRead & 7]) ? 1 : 0
+			pStruct->bitsRead += 1
+		if bit is 0
+			node = leftNode[node]  // array of shorts
+		else
+			if bit < 0  // most likely for the -1 and -2 error codes coming out of _GetBitX
+				return bit
+			node = rightNode[node]
+		if node >= 256
+			return node - 256
+
+_DecompressSixBits(pDcStruct)
+	- no huffman encoding, just read the bits
+	decompressedByte = 0
+	if (pStruct->bitsRead & 7) == 0
+		firstBit = _GetBitX(pStruct)
+	else
+		firstBit = (pStruct->currentChar + pStruct->funnyMaskPtr[pStruct->bitsRead & 7]) ? 1 : 0
+		pStruct->bitsRead += 1
+	if firstBit is not 0
+		if firstBit < 0
+			return firstBit  // failure code
+		decompressedByte |= 0x20
+	the structure above is repeated 5 more times, and or's decompressedByte with 0x10 0x08 0x04 0x02 and 0x01
+
+_ZiNumberLen(decompressedChar, lenBuffer)
+	- UTF8 to unicode
+	if decompressedChar[0] < 0x80
+		*lenBuffer = 1
+		return decompressedChar[0]
+	if decompressedChar[0] <= 0xDF
+		if decompressedChar[0] <= 0xC1
+			*lenBuffer = 1
+			return 0xFFFE // fail
+		if (decompressedChar[1] & 0xC0) != 0x80
+			*lenBuffer = 1
+			return 0xFFFE // fail
+		*lenBuffer = 2
+		return (decompressedChar[0] & 0x1F) << 6 | (decompressedChar[1] & 0x3F)
+	if decompressedChar[0] <= 0xEF
+		if decompressedChar[0] == 0xE0
+			if decompressedChar[1] <= 0x9F
+				*lenBuffer = 1
+				return 0xFFFE // fail
+		if decompressedChar[0] == 0xED
+			if decompressedChar[1] > 0x9F
+				*lenBuffer = 1
+				return 0xFFFE // fail
+		if (decompressedChar[1] & 0xC0) != 0x80 or (decompressedChar[2] & 0xC0) != 0x80
+			*lenBuffer = 1
+			return 0xFFFE // fail
+		*lenBuffer = 3
+		return (decompressedChar[0] & 0x0F) << 12 | (decompressedChar[1] & 0x3F) << 6 | (decompressedChar[2] & 0x3F)
+	if decompressedChar[0] > 0xF4
+		*lenBuffer = 1
+		return 0xFFFE // fail
+	if decompressedChar[0] == 0xF0
+		if decompressedChar[1] <= 0x8F
+			*lenBuffer = 1
+			return 0xFFFE // fail
+	if decompressedChar[0] == 0xF4
+		if decompressedChar[1] > 0x8F
+			*lenBuffer = 1
+			return 0xFFFE // fail
+	if (decompressedChar[1] & 0xC0) != 0x80 or (decompressedChar[2] & 0xC0) != 0x80 or (decompressedChar[3] & 0xC0) != 0x80
+		*lenBuffer = 1
+		return 0xFFFE // fail
+	*lenBuffer = 4
+	return (decompressedChar[0] & 0x07) << 18 | (decompressedChar[1] & 0x3F) << 12 | (decompressedChar[2] & 0x3F) << 6 | (decompressedChar[3] & 0x3F)
+
+_GetBitX(pDcStruct)
+	- reads one byte from the currentChar / currentLine buffer
+	if pDcStruct->bitsRead >= pDcStruct->totalBits
+		return -2  // read too much
+	fChar = _MatrixFGetC(pDcStruct)
+	if fChar is -1, return -1  // I/O error
+
+	pStruct->currentChar = fChar ^ pStruct->cryptMask[pStruct->cryptOffset & 63]
+	pStruct->cryptOffset -= 1
+	returnValue = (pStruct->funnyMaskPtr[pStruct->bitsRead & 7] & pStruct->currentChar) ? 1 : 0
+	pStruct->bitsRead += 1
+
+_MatrixFGetC(pStruct)
+	- buffer is a local (stack-allocated) buffer
+	if pStruct->currentLine is not 9
+		if pStruct->currentLine is 0
+			fread(buffer, 1, 9, fp)
+			if fread fails, return -1
+			_MatrixMultiply(pStruct->currentLine, inverseMatrix, buffer)
+		returnValue = pStruct->currentLine[pStruct[0x19]]
+		pStruct->lineOffset += 1
+	else // pStruct->lineOffset is 9
+		returnValue = getc(*pStruct) // *pStruct is fp
+
+_MatrixMultiply(result, matrix, vector)
+	for (i = 8; i != -1; i--)
+		*result = matrix[8] * vector[8] + matrix[7] * vector[7] + vector[6] * vector[6] + matrix[4] * vector[4] + matrix[5] * vector[5] + matrix[2] * vector[2] + matrix[3] * vector[3] + matrix[0] * vector[0] + matrix[1] * vector[1]
+		result += 1
+		matrix += 9
+
+_OpenDatabaseFile(dbIndex, fopenMode) --> FILE*
+	- dbIndex points in an array of database names,
+	- fopenMode is the mode arg for open (e.g., "rb")
+	_OpenDictionaryFileSetLoc(dbIndex, fopenMode, dbStructure = NULL)
+		_OpenDictionaryFileSetLocMayWarn(dbIndex, fopenMode, dbStructure, 1)
+			dbLocation = UUUDBLoc(dbStructure)
+				- if dbStructure is 0, return NULL
+				- otherwise return dbStructure[0x218] -- seems like it's a large struct
+			if dbLocation is NULL
+				dbLocation = GetDictionaryFileLocationFromName(dbIndex)
+			if dbLocation is NULL
+				fp = _OpenWenlinFile(1, dbIndex, fopenMode)
+			else
+				fp = _OpenFileFromDBLoc(dbLocation, dbIndex, fopenMode)
+			if fp is NULL and mayWarn, complain
+			return fp
+
+_MBCLenFromFirstByte(firstByte)
+	- returns the length of a (UTF8 probably?) multi-byte character, based on its first byte
+	if firstByte & 0x80 == 0
+		return 1
+	if firstByte > 0xC1 && firstByte < 0xDF
+		return 2
+	if firstByte <= 0xEF
+		return 3
+	if firstByte <= 0xF7
+		return 4
+	else
+		return 1
+

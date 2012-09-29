@@ -16,31 +16,21 @@ Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "wenlin_db_scanner"
   gem.homepage = "http://github.com/pwnall/wenlin_db_scanner"
-  gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
-  gem.email = "costan@gmail.com"
+  gem.license = "CC0"
+  gem.summary = %Q{Extracts the data from the Wenlin dictionary}
+  gem.description = <<END
+The Wenlin dictionary contains two great databases, the ABC English<->Chinese
+dictionary, and the Character Description Language (CDL). Unfortunately, this
+data is wrapped by a less-than-great UI. This gem lets you extract the data so
+you can build your own UI for it.
+END
+  gem.email = "victor@costan.us"
   gem.authors = ["Victor Costan"]
   # dependencies defined in Gemfile
 end
 Jeweler::RubygemsDotOrgTasks.new
 
-require 'rake/testtask'
-Rake::TestTask.new(:test) do |test|
-  test.libs << 'lib' << 'test'
-  test.pattern = 'test/**/*_test.rb'
-  test.verbose = true
-end
-
-require 'rcov/rcovtask'
-Rcov::RcovTask.new do |test|
-  test.libs << 'test'
-  test.pattern = 'test/**/*_test.rb'
-  test.verbose = true
-  test.rcov_opts << '--exclude "gems/*"'
-end
-
-task :default => :test
+task :default => :install
 
 require 'yard'
 YARD::Rake::YardocTask.new
