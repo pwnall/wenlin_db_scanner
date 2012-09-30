@@ -25,9 +25,32 @@ The following commands assume that the current directory of your `Terminal` /
 `Command Prompt` is the Wenlin application's main directory. If your current
 directory contains a `W4DB` directory, you're probably in the right place.
 
+### wenlin_dict
+
+Parses a dictionary database into a file containing one JSON line per entry.
+
+```bash
+wenlin_dict W4DB/ en > en_zh.json
+wenlin_dict W4DB/ zh > zh_en.json
+```
+
+### wenlin_parts
+
+Parses a parts-of-speech database into a file containing one JSON line per part
+of speech.
+
+The parts of speech are referenced by the word defintion databases, which use
+their abbreviations.
+
+```bash
+wenlin_parts W4DB/ en > en_parts.json
+wenlin_parts W4DB/ zh > zh_parts.json
+```
+
 ### wenlin_dbdump
 
-`dbdump` extracts the raw text entries in a .db file.
+Extracts the raw text entries in a .db file. Useful for debugging and
+understanding the record format.
 
 ```bash
 wenlin_dbdumb W4DB/abc_ce.db

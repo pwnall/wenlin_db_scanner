@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+# Requires Ruby 1.9, tested on MRI 1.9.3.
+
+require 'json'
+require 'wenlin_db_scanner'
+
+unless ARGV.length == 2
+  puts "Usage: #{$0} path-to-db-dir language"
+end
+
+if ARGV[1] == 'en'
+  parts = WenlinDbScanner::SpeechParts.en ARGV[0]
+else
+  parts = WenlinDbScanner::SpeechParts.zh ARGV[0]
+end
+
+parts.each { |part| puts part.to_hash.to_json }
+

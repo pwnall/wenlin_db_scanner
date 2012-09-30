@@ -7,3 +7,6 @@ end
 
 require 'wenlin_db_scanner/db.rb'
 require 'wenlin_db_scanner/db_record.rb'
+require 'wenlin_db_scanner/dict.rb'
+require 'wenlin_db_scanner/speech_parts.rb'
+

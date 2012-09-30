@@ -19,4 +19,5 @@ db.records.each do |record|
   puts record.text
   puts "---------- record end"
 end
+db.close
 
