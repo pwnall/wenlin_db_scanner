@@ -5,13 +5,20 @@ require 'json'
 require 'wenlin_db_scanner'
 
 unless ARGV.length == 2
-  puts "Usage: #{$0} path-to-db-dir language"
+  STDERR.puts "Usage: #{$0} path-to-db-dir en-zh|zh-en|hz-en"
+  exit 1
 end
 
-if ARGV[1] == 'en'
+case ARGV[1]
+when 'en-zh'
   entries = WenlinDbScanner::Dicts.en_zh ARGV[0]
-else
+when 'zh-en'
   entries = WenlinDbScanner::Dicts.zh_en ARGV[0]
+when 'hz-en'
+  entries = WenlinDbScanner::Chars.hz_en ARGV[0]
+else
+  STDERR.puts "Unknown dictionary #{ARGV[1]}\nUse en-zh, zh-en, or hz-en\n"
+  exit 1
 end
 
-entries.each { |part| puts part.to_hash.to_json }
+entries.each { |entry| puts entry.to_hash.to_json }

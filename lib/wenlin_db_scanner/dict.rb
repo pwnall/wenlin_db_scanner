@@ -229,6 +229,7 @@ module Dicts
   # @param [String] key a dictionary key
   # @return [String] the term inside the key, spelled using Latin characters
   def self.key_latin_term(key)
+    Chars.pinyin_to_latin key_term(key)
   end
 
   # The frequency information expressed in a dictionary key.
@@ -316,7 +317,8 @@ class DictEntry < Struct.new(:key, :term, :ipa, :zh, :zh_tw, :defn, :freq,
   # @!attribute [r] latin_frequency_boost
   #   @return [Boolean] if true, the term is the most frequent among all terms
   #       with the same Latin alphabet spelling; useful for ordering
-  #       suggestions when the user is typing raw Latin characters
+  #       suggestions when the user is typing raw Latin characters; use the
+  #       latin_term property to get a term's LAtin spelling
   # @!attribute [r] field
   #   @return [String] the term's field of reference, abbreviated in English
   # @!attribute [r] field_zh

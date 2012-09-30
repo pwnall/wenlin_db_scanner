@@ -4,7 +4,8 @@
 require 'wenlin_db_scanner'
 
 unless ARGV.length == 1
-  puts "Usage: #{$0} path-to-db-file"
+  STDERR.puts "Usage: #{$0} path-to-db-file"
+  exit 1
 end
 
 db = WenlinDbScanner::Db.new ARGV[0]

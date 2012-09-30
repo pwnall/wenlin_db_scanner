@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+# Requires Ruby 1.9, tested on MRI 1.9.3.
+
+require 'json'
+require 'wenlin_db_scanner'
+
+unless ARGV.length == 1
+  puts "Usage: #{$0} path-to-db-dir"
+end
+
+chars = WenlinDbScanner::Chars.hanzi ARGV[0]
+
+chars.each { |char| puts char.to_hash.to_json }

@@ -13,11 +13,14 @@ the data on their own terms.
 
 ## Installation
 
-This ships as a Ruby gem, and the standard installation applies.
+The tool ships as a Ruby gem, and the standard installation process applies.
+The code relies on Ruby 1.9 syntax and String encoding. It was tested to work
+with MRI 1.9.3.
 
 ```bash
 gem install wenlin_db_server
 ```
+
 
 ## Command-Line Usage
 
@@ -30,8 +33,18 @@ directory contains a `W4DB` directory, you're probably in the right place.
 Parses a dictionary database into a file containing one JSON line per entry.
 
 ```bash
-wenlin_dict W4DB/ en > en_zh.json
-wenlin_dict W4DB/ zh > zh_en.json
+wenlin_dict W4DB/ en-zh > en_zh.json
+wenlin_dict W4DB/ zh-en > zh_en.json
+wenlin_dict W4DB/ hz-en > hz_en.json
+```
+
+### wenlin_hanzi
+
+Parses the database that breaks down hanzi (Chinese characters) into
+components.
+
+```bash
+wenlin_hanzi W4DB > hanzi.json
 ```
 
 ### wenlin_parts

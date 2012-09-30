@@ -5,6 +5,7 @@
 module WenlinDbScanner
 end
 
+require 'wenlin_db_scanner/chars.rb'
 require 'wenlin_db_scanner/db.rb'
 require 'wenlin_db_scanner/db_record.rb'
 require 'wenlin_db_scanner/dict.rb'
