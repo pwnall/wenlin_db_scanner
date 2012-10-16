@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "wenlin_db_scanner"
-  s.version = "0.2.0"
+  s.version = "0.2.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Victor Costan"]
-  s.date = "2012-09-30"
+  s.date = "2012-10-16"
   s.description = "The Wenlin dictionary contains two great databases, the ABC English<->Chinese\ndictionary, and the Character Description Language (CDL). Unfortunately, this\ndata is wrapped by a less-than-great UI. This gem lets you extract the data so\nyou can build your own UI for it.\n"
   s.email = "victor@costan.us"
   s.executables = ["wenlin_dbdump", "wenlin_dict", "wenlin_hanzi", "wenlin_parts"]
@@ -38,7 +38,8 @@ Gem::Specification.new do |s|
     "reversed/README.md",
     "reversed/code.asm",
     "reversed/magic.txt",
-    "reversed/notes.txt"
+    "reversed/notes.txt",
+    "wenlin_db_scanner.gemspec"
   ]
   s.homepage = "http://github.com/pwnall/wenlin_db_scanner"
   s.licenses = ["CC0"]
