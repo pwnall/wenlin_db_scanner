@@ -103,17 +103,21 @@ module Chars
           aside_text = aside[1...-1]
           case aside_text[0]
           when '='
-            entry.variants = aside_text[1..-1].chars.to_a
+            entry.variants = aside_text[1..-1].chars.
+                reject { |c| c.codepoints.first < 128 }
             header.gsub! aside, ''
           when '!', '?'
             entry.related ||= []
-            entry.related += aside_text[1..-1].chars.to_a
+            entry.related += aside_text[1..-1].chars.
+                reject { |c| c.codepoints.first < 128 }
             header.gsub! aside, ''
           when 'F'
-            entry.complex_forms = aside_text[1..-1].chars.to_a
+            entry.complex_forms = aside_text[1..-1].chars.
+                reject { |c| c.codepoints.first < 128 }
             header.gsub! aside, ''
           when 'S'
-            entry.simplified_forms = aside_text[1..-1].chars.to_a
+            entry.simplified_forms = aside_text[1..-1].chars.
+                reject { |c| c.codepoints.first < 128 }
             header.gsub! aside, ''
           when 'u', 'U'
             if /^Unihan/i =~ aside_text
@@ -142,7 +146,8 @@ module Chars
           tag, data = line[1], line[2..-1].strip
           case 'tag'
           when 'c'
-            entry.components = data.chars.to_a
+            entry.components = data.chars.
+                reject { |c| c.codepoints.first < 128 }
           when 'r'
             # NOTE: skipping remarks
           when 'y'
