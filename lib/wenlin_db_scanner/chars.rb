@@ -95,7 +95,7 @@ module Chars
         entry.pinyin = header.scan(/\[([^\]]*)\]/).
                               map { |match| match.first.strip }
         entry.latin_pinyin =
-            entry.pinyin.map { |pinyin| pinyin_to_latin pinyin }
+            entry.pinyin.map { |pinyin| pinyin_to_latin pinyin }.uniq
         header.gsub!(/\[[^\]]*\]/, '')
         header.strip!
 
