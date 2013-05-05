@@ -18,7 +18,7 @@ The code relies on Ruby 1.9 syntax and String encoding. It was tested to work
 with MRI 1.9.3.
 
 ```bash
-gem install wenlin_db_server
+gem install wenlin_db_scanner
 ```
 
 
